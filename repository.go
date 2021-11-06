@@ -1,23 +1,41 @@
 package main
 
+import (
+	"encoding/json"
+	"errors"
+	"io/ioutil"
+)
+
 type ProductDAO struct {
-	id          int
-	title       string
-	description string
-	amount      int
-	is_gift     bool
+	Id          int
+	Title       string
+	Description string
+	Amount      int
+	IsGift      bool
 }
 
 type InMemoryRepository struct {
 	Products []ProductDAO
 }
 
-func NewInMemoryRepository(jsonFilePath string) InMemoryRepository {
-	// open json file
-	return InMemoryRepository{}
+func NewInMemoryRepository(jsonFilePath string) (InMemoryRepository, error) {
+
+	ret := InMemoryRepository{}
+
+	content, err := ioutil.ReadFile(jsonFilePath)
+	if err != nil {
+		return ret, errors.New("Error opening file " + jsonFilePath + ": " + err.Error())
+	}
+
+	err = json.Unmarshal(content, &ret.Products)
+	if err != nil {
+		return ret, errors.New("Error unmarshalling json: " + err.Error())
+	}
+
+	return ret, nil
 }
 
-func (m InMemoryRepository) FindById(id int) (ProductDAO, error) {
+func (m InMemoryRepository) Find(id int) (ProductDAO, error) {
 	return ProductDAO{}, nil
 }
 

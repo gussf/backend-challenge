@@ -1,21 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 )
 
-func checkoutHandler(rw http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		rw.WriteHeader(http.StatusMethodNotAllowed)
-		rw.Write([]byte("Only POST method is allowed"))
+func main() {
+	imr, err := NewInMemoryRepository("data/products.json")
+	if err != nil {
+		log.Fatal(err.Error())
 	}
 
-	fmt.Println("Hello world")
-}
+	cSvc := NewCheckoutService(imr)
+	r := NewECommerceRouter(cSvc)
 
-func main() {
-	http.HandleFunc("/checkout", checkoutHandler)
+	http.HandleFunc("/checkout", r.Checkout)
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }
