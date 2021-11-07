@@ -17,8 +17,7 @@ func main() {
 
 	http.HandleFunc("/checkout", r.Checkout)
 
-	port := os.Getenv("LISTEN_PORT")
-	address := "0.0.0.0:" + port
+	address := os.Getenv("LISTEN_ADDRESS")
 
 	log.Println("Starting ecommerce server on", address)
 	log.Fatal(http.ListenAndServe(address, nil))
