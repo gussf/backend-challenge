@@ -4,7 +4,7 @@ WORKDIR /go/build/
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o ecommerce .
+RUN CGO_ENABLED=0 go build -o ecommerce src/*
 
 
 FROM alpine
