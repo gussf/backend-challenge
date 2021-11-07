@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"sort"
 )
 
 type ProductDAO struct {
@@ -11,7 +12,7 @@ type ProductDAO struct {
 	Title       string
 	Description string
 	Amount      int
-	IsGift      bool
+	Is_gift     bool
 }
 
 type InMemoryRepository struct {
@@ -35,8 +36,13 @@ func NewInMemoryRepository(jsonFilePath string) (InMemoryRepository, error) {
 	return ret, nil
 }
 
+// Uses binary search to find the product in the already sorted products.json repository
 func (m InMemoryRepository) Find(id int) (ProductDAO, error) {
-	return ProductDAO{}, nil
+	ret := sort.Search(len(m.Products), func(i int) bool { return m.Products[i].Id >= id })
+	if ret < len(m.Products) && m.Products[ret].Id == id {
+		return m.Products[ret], nil
+	}
+	return ProductDAO{}, errors.New("Product not found in repository")
 }
 
 type Repository interface {

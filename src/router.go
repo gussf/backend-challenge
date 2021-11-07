@@ -6,13 +6,20 @@ import (
 	"net/http"
 )
 
-type CheckoutRequest struct {
-	Products []ProductRequest
+type CheckoutJSONResponse struct {
+	Total_amount               int                   `json:"total_amount"`
+	Total_amount_with_discount int                   `json:"total_amount_with_discount"`
+	Total_discount             int                   `json:"total_discount"`
+	Products                   []ProductJSONResponse `json:"products"`
 }
 
-type ProductRequest struct {
-	id       int
-	quantity int
+type ProductJSONResponse struct {
+	Id           int  `json:"id"`
+	Quantity     int  `json:"quantity"`
+	Unit_amount  int  `json:"unit_amount"`
+	Total_amount int  `json:"total_amount"`
+	Discount     int  `json:"discount"`
+	Is_gift      bool `json:"is_gift"`
 }
 
 type ECommerceRouter struct {
@@ -33,17 +40,21 @@ func (router ECommerceRouter) Checkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checkoutReq, err := ParseProductsFromRequest(r)
+	checkoutReq, err := ParseCheckoutRequestFromBody(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Failed to parse request: " + err.Error()))
 		log.Println("Failed to parse request: " + err.Error())
 	}
 
-	log.Println(checkoutReq)
+	resp, err := router.cs.ProcessRequest(checkoutReq)
+
+	jsonResp := ConvertCheckoutResponseToCheckoutJSONResponse(resp)
+	enc := json.NewEncoder(w)
+	enc.Encode(jsonResp)
 }
 
-func ParseProductsFromRequest(r *http.Request) (CheckoutRequest, error) {
+func ParseCheckoutRequestFromBody(r *http.Request) (CheckoutRequest, error) {
 
 	var checkoutReq CheckoutRequest
 
@@ -54,4 +65,30 @@ func ParseProductsFromRequest(r *http.Request) (CheckoutRequest, error) {
 	}
 
 	return checkoutReq, nil
+}
+
+func ConvertCheckoutResponseToCheckoutJSONResponse(r CheckoutResponse) CheckoutJSONResponse {
+
+	var resp CheckoutJSONResponse
+
+	for _, p := range r.Products {
+		resp.Products = append(resp.Products, ConvertProductResponseToProductJSONResponse(p))
+	}
+
+	resp.Total_amount = r.TotalAmount
+	resp.Total_amount_with_discount = r.TotalAmount - r.TotalDiscount
+	resp.Total_discount = r.TotalDiscount
+
+	return resp
+}
+
+func ConvertProductResponseToProductJSONResponse(p ProductResponse) ProductJSONResponse {
+	return ProductJSONResponse{
+		Id:           p.Id,
+		Quantity:     p.Quantity,
+		Unit_amount:  p.UnitAmount,
+		Total_amount: p.TotalAmount,
+		Discount:     p.DiscountGiven,
+		Is_gift:      p.IsGift,
+	}
 }
