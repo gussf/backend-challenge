@@ -25,12 +25,12 @@ func NewInMemoryRepository(jsonFilePath string) (InMemoryRepository, error) {
 
 	content, err := ioutil.ReadFile(jsonFilePath)
 	if err != nil {
-		return ret, errors.New("Error opening file " + jsonFilePath + ": " + err.Error())
+		return ret, errors.New("error opening file " + jsonFilePath + ": " + err.Error())
 	}
 
 	err = json.Unmarshal(content, &ret.Products)
 	if err != nil {
-		return ret, errors.New("Error unmarshalling json: " + err.Error())
+		return ret, errors.New("error unmarshalling json: " + err.Error())
 	}
 
 	return ret, nil
@@ -42,7 +42,7 @@ func (m InMemoryRepository) Find(id int) (ProductDAO, error) {
 	if ret < len(m.Products) && m.Products[ret].Id == id {
 		return m.Products[ret], nil
 	}
-	return ProductDAO{}, errors.New("Product not found in repository")
+	return ProductDAO{}, errors.New("product not found in repository")
 }
 
 type Repository interface {

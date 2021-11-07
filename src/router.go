@@ -67,7 +67,7 @@ func ParseCheckoutRequestFromBody(r *http.Request) (CheckoutRequest, error) {
 	return checkoutReq, nil
 }
 
-func ConvertCheckoutResponseToCheckoutJSONResponse(r CheckoutResponse) CheckoutJSONResponse {
+func ConvertCheckoutResponseToCheckoutJSONResponse(r *CheckoutResponse) CheckoutJSONResponse {
 
 	var resp CheckoutJSONResponse
 

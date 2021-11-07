@@ -36,8 +36,8 @@ func NewCheckoutService(r Repository) CheckoutService {
 	}
 }
 
-func (c CheckoutService) ProcessRequest(req CheckoutRequest) (CheckoutResponse, error) {
-	var response CheckoutResponse
+func (c CheckoutService) ProcessRequest(req CheckoutRequest) (*CheckoutResponse, error) {
+	response := CheckoutResponse{}
 
 	for _, p := range req.Products {
 		productDAO, err := c.repo.Find(p.Id)
@@ -46,29 +46,43 @@ func (c CheckoutService) ProcessRequest(req CheckoutRequest) (CheckoutResponse, 
 			continue
 		}
 
-		if productDAO.Is_gift {
+		if CheckedOutProductIsAGift(productDAO) {
 			log.Println("Product with id =", p.Id, "is a gift and therefore cannot be checked out")
 			continue
 		}
 
 		// get discount from grpc server
 		// todo
-		discount := 0
+		discount := 0.05
 
-		response.TotalAmount += productDAO.Amount * p.Quantity
-		response.TotalDiscount += discount
-		response.Products = append(response.Products, ConvertProductDAOToProductResponse(productDAO, p.Quantity, discount))
+		productResp := ConvertProductDAOToProductResponse(productDAO, p.Quantity, discount)
+		response.AddProduct(productResp)
 	}
-	return response, nil
+	return &response, nil
 }
 
-func ConvertProductDAOToProductResponse(p ProductDAO, quantity int, discount int) ProductResponse {
+func CheckedOutProductIsAGift(p ProductDAO) bool {
+	return p.Is_gift
+}
+
+func ConvertProductDAOToProductResponse(p ProductDAO, quantity int, discount float64) ProductResponse {
 	return ProductResponse{
 		Id:            p.Id,
 		Quantity:      quantity,
 		UnitAmount:    p.Amount,
 		TotalAmount:   p.Amount * quantity,
-		DiscountGiven: discount,
+		DiscountGiven: int(float64(p.Amount*quantity) * discount),
 		IsGift:        p.Is_gift,
 	}
+}
+
+// AddProduct updates totals for safety, the caller might forget to call one or the other
+func (r *CheckoutResponse) AddProduct(p ProductResponse) {
+	r.Products = append(r.Products, p)
+	r.UpdateCheckoutTotals(p)
+}
+
+func (r *CheckoutResponse) UpdateCheckoutTotals(p ProductResponse) {
+	r.TotalAmount += p.TotalAmount
+	r.TotalDiscount += p.DiscountGiven
 }
