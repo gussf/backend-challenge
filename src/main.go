@@ -15,5 +15,7 @@ func main() {
 	r := NewECommerceRouter(cSvc)
 
 	http.HandleFunc("/checkout", r.Checkout)
+
+	log.Println("Starting ecommerce on :3000...")
 	log.Fatal(http.ListenAndServe(":3000", nil))
 }

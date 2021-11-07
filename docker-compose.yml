@@ -1,0 +1,7 @@
+services:
+  ecommerce:
+    build: .
+    ports:
+      - "3000:3000"
+  discount:
+    image: hashorg/hash-mock-discount-service
