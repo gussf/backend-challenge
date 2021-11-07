@@ -11,6 +11,8 @@ FROM alpine
 
 WORKDIR /hash/
 
+ENV LISTEN_PORT 3000
+
 COPY --from=build /go/build/ecommerce ./ecommerce
 COPY --from=build /go/build/data/products.json ./data/products.json
 

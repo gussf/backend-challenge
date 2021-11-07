@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -16,6 +17,9 @@ func main() {
 
 	http.HandleFunc("/checkout", r.Checkout)
 
-	log.Println("Starting ecommerce on :3000...")
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	port := os.Getenv("LISTEN_PORT")
+	address := "0.0.0.0:" + port
+
+	log.Println("Starting ecommerce server on", address)
+	log.Fatal(http.ListenAndServe(address, nil))
 }
