@@ -5,14 +5,21 @@ import (
 	"testing"
 )
 
+type StubDiscountService struct{}
+
+func (s StubDiscountService) GetDiscountForProduct(id int32) float32 {
+	return 0.1
+}
+
 func TestCheckoutProcessRequest(t *testing.T) {
 
 	tests := []struct {
-		name                string
-		testProducts        []ProductDAO
-		testProductRequest  []ProductRequest
-		expectedLength      int
-		expectedTotalAmount int
+		name                  string
+		testProducts          []ProductDAO
+		testProductRequest    []ProductRequest
+		expectedLength        int
+		expectedTotalAmount   int
+		expectedTotalDiscount int
 	}{
 		{
 			name: "Should not checkout gift products",
@@ -22,8 +29,9 @@ func TestCheckoutProcessRequest(t *testing.T) {
 			testProductRequest: []ProductRequest{
 				{Id: 1, Quantity: 1},
 			},
-			expectedLength:      0,
-			expectedTotalAmount: 0,
+			expectedLength:        0,
+			expectedTotalAmount:   0,
+			expectedTotalDiscount: 0,
 		},
 		{
 			name: "Checkout valid products",
@@ -35,8 +43,9 @@ func TestCheckoutProcessRequest(t *testing.T) {
 				{Id: 1, Quantity: 2},
 				{Id: 2, Quantity: 2},
 			},
-			expectedLength:      2,
-			expectedTotalAmount: (100 * 2) + (200 * 2),
+			expectedLength:        2,
+			expectedTotalAmount:   600,
+			expectedTotalDiscount: 60,
 		},
 		{
 			name: "Checkout valid products with one gift product(gift shouldnt be checked out)",
@@ -50,15 +59,16 @@ func TestCheckoutProcessRequest(t *testing.T) {
 				{Id: 2, Quantity: 1},
 				{Id: 3, Quantity: 1},
 			},
-			expectedLength:      2,
-			expectedTotalAmount: 100 + 200,
+			expectedLength:        2,
+			expectedTotalAmount:   300,
+			expectedTotalDiscount: 30,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			inmemoryRepo := InMemoryRepository{Products: tt.testProducts}
-			checkoutSvc := NewCheckoutService(inmemoryRepo)
+			checkoutSvc := NewCheckoutService(inmemoryRepo, StubDiscountService{})
 			request := CheckoutRequest{
 				Products: tt.testProductRequest,
 			}
@@ -74,6 +84,10 @@ func TestCheckoutProcessRequest(t *testing.T) {
 				t.Errorf("'%s' failed on TotalAmount: want=%d, got=%d", tt.name, tt.expectedTotalAmount, got)
 			}
 
+			got = response.TotalDiscount
+			if tt.expectedTotalDiscount != got {
+				t.Errorf("'%s' failed on TotalDiscount: want=%d, got=%d", tt.name, tt.expectedTotalDiscount, got)
+			}
 		})
 	}
 }
@@ -145,7 +159,7 @@ func TestConvertProductDAOToProductResponse(t *testing.T) {
 	quantity := 2
 	discount := 0.05
 
-	pResp := ConvertProductDAOToProductResponse(p, quantity, discount)
+	pResp := ConvertProductDAOToProductResponse(p, quantity, float32(discount))
 
 	want := p.Id
 	got := pResp.Id

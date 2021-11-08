@@ -27,12 +27,14 @@ type ProductRequest struct {
 }
 
 type CheckoutService struct {
-	repo Repository
+	repo        Repository
+	discountSvc DiscountService
 }
 
-func NewCheckoutService(r Repository) CheckoutService {
+func NewCheckoutService(r Repository, d DiscountService) CheckoutService {
 	return CheckoutService{
-		repo: r,
+		repo:        r,
+		discountSvc: d,
 	}
 }
 
@@ -51,10 +53,7 @@ func (c CheckoutService) ProcessRequest(req CheckoutRequest) (*CheckoutResponse,
 			continue
 		}
 
-		// get discount from grpc server
-		// todo
-		discount := 0.05
-
+		discount := c.discountSvc.GetDiscountForProduct(int32(p.Id))
 		productResp := ConvertProductDAOToProductResponse(productDAO, p.Quantity, discount)
 		response.AddProduct(productResp)
 	}
@@ -65,13 +64,13 @@ func CheckedOutProductIsAGift(p ProductDAO) bool {
 	return p.Is_gift
 }
 
-func ConvertProductDAOToProductResponse(p ProductDAO, quantity int, discount float64) ProductResponse {
+func ConvertProductDAOToProductResponse(p ProductDAO, quantity int, discount float32) ProductResponse {
 	return ProductResponse{
 		Id:            p.Id,
 		Quantity:      quantity,
 		UnitAmount:    p.Amount,
 		TotalAmount:   p.Amount * quantity,
-		DiscountGiven: int(float64(p.Amount*quantity) * discount),
+		DiscountGiven: int(float32(p.Amount*quantity) * discount),
 		IsGift:        p.Is_gift,
 	}
 }

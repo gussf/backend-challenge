@@ -4,21 +4,29 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 )
 
 func main() {
+
+	ecommerceAddress := os.Getenv("ECOMMERCE_LISTEN_ADDRESS")
+	discountGRPCAddress := os.Getenv("DISCOUNT_GRPC_ADDRESS")
+	grpcDeadlineEnvvar, _ := strconv.Atoi(os.Getenv("GRPC_DEADLINE_MS"))
+	log.Println(grpcDeadlineEnvvar)
+	gRPC_Deadline := time.Duration(grpcDeadlineEnvvar * int(time.Millisecond))
+
 	imr, err := NewInMemoryRepository("data/products.json")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	cSvc := NewCheckoutService(imr)
+	dSvc := NewDiscountService_gRPC(discountGRPCAddress, gRPC_Deadline)
+	cSvc := NewCheckoutService(imr, dSvc)
 	r := NewECommerceRouter(cSvc)
 
 	http.HandleFunc("/checkout", r.Checkout)
 
-	address := os.Getenv("LISTEN_ADDRESS")
-
-	log.Println("Starting ecommerce server on", address)
-	log.Fatal(http.ListenAndServe(address, nil))
+	log.Println("Starting ecommerce server on", ecommerceAddress)
+	log.Fatal(http.ListenAndServe(ecommerceAddress, nil))
 }
