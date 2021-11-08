@@ -3,5 +3,9 @@ services:
     build: .
     ports:
       - "3000:3000"
+    environment:
+      ECOMMERCE_LISTEN_ADDRESS: ${ECOMMERCE_LISTEN_ADDRESS}
+      DISCOUNT_GRPC_ADDRESS: ${DISCOUNT_GRPC_ADDRESS}
+      GRPC_DEADLINE_MS: ${GRPC_DEADLINE_MS}
   discount:
     image: hashorg/hash-mock-discount-service

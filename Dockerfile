@@ -4,14 +4,12 @@ WORKDIR /go/build/
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o ecommerce src/*
+RUN CGO_ENABLED=0 go build -o ecommerce ./src/
 
 
 FROM alpine
 
 WORKDIR /hash/
-
-ENV LISTEN_ADDRESS localhost:3000
 
 COPY --from=build /go/build/ecommerce ./ecommerce
 COPY --from=build /go/build/data/products.json ./data/products.json
