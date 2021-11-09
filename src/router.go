@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/gussf/backend-challenge/src/checkout"
 )
 
 type CheckoutJSONResponse struct {
@@ -23,10 +25,10 @@ type ProductJSONResponse struct {
 }
 
 type ECommerceRouter struct {
-	checkoutSvc CheckoutService
+	checkoutSvc checkout.CheckoutService
 }
 
-func NewECommerceRouter(cs CheckoutService) ECommerceRouter {
+func NewECommerceRouter(cs checkout.CheckoutService) ECommerceRouter {
 	return ECommerceRouter{
 		checkoutSvc: cs,
 	}
@@ -54,9 +56,9 @@ func (router ECommerceRouter) Checkout(w http.ResponseWriter, r *http.Request) {
 	enc.Encode(jsonResp)
 }
 
-func ParseCheckoutRequestFromBody(r *http.Request) (CheckoutRequest, error) {
+func ParseCheckoutRequestFromBody(r *http.Request) (checkout.CheckoutRequest, error) {
 
-	var checkoutReq CheckoutRequest
+	var checkoutReq checkout.CheckoutRequest
 
 	dec := json.NewDecoder(r.Body)
 	err := dec.Decode(&checkoutReq)
@@ -67,7 +69,7 @@ func ParseCheckoutRequestFromBody(r *http.Request) (CheckoutRequest, error) {
 	return checkoutReq, nil
 }
 
-func ConvertCheckoutResponseToCheckoutJSONResponse(r *CheckoutResponse) CheckoutJSONResponse {
+func ConvertCheckoutResponseToCheckoutJSONResponse(r *checkout.CheckoutResponse) CheckoutJSONResponse {
 
 	resp := CheckoutJSONResponse{Products: make([]ProductJSONResponse, 0)}
 
@@ -82,7 +84,7 @@ func ConvertCheckoutResponseToCheckoutJSONResponse(r *CheckoutResponse) Checkout
 	return resp
 }
 
-func ConvertProductResponseToProductJSONResponse(p ProductResponse) ProductJSONResponse {
+func ConvertProductResponseToProductJSONResponse(p checkout.ProductResponse) ProductJSONResponse {
 	return ProductJSONResponse{
 		Id:           p.Id,
 		Quantity:     p.Quantity,

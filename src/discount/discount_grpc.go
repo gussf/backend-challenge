@@ -1,16 +1,16 @@
-package main
+package discount
 
 import (
 	"context"
 	"log"
 	"time"
 
-	discount "github.com/gussf/backend-challenge/src/pb"
+	pb "github.com/gussf/backend-challenge/src/discount/pb"
 	"google.golang.org/grpc"
 )
 
 type DiscountService_gRPC struct {
-	client   discount.DiscountClient
+	client   pb.DiscountClient
 	deadline time.Duration
 }
 
@@ -19,7 +19,7 @@ func NewDiscountService_gRPC(connAddress string, deadline time.Duration) Discoun
 	if err != nil {
 		log.Printf("Could not connect to gRPC Discount Server(%s): %v", connAddress, err)
 	}
-	c := discount.NewDiscountClient(conn)
+	c := pb.NewDiscountClient(conn)
 
 	return DiscountService_gRPC{
 		client:   c,
@@ -32,7 +32,7 @@ func (svc DiscountService_gRPC) GetDiscountForProduct(id int32) float32 {
 	clientDeadline := time.Now().Add(svc.deadline)
 	ctx, cancel := context.WithDeadline(context.Background(), clientDeadline)
 
-	r, err := svc.client.GetDiscount(ctx, &discount.GetDiscountRequest{ProductID: id})
+	r, err := svc.client.GetDiscount(ctx, &pb.GetDiscountRequest{ProductID: id})
 	defer cancel()
 	if err != nil {
 		log.Printf("Failed to get discount for product=%d, returning discount=0.00: %v", id, err)
@@ -42,8 +42,4 @@ func (svc DiscountService_gRPC) GetDiscountForProduct(id int32) float32 {
 
 	log.Printf("Discount=%.2f received for product=%d", discount, id)
 	return discount
-}
-
-type DiscountService interface {
-	GetDiscountForProduct(id int32) float32
 }
