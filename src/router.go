@@ -59,7 +59,7 @@ func (router ECommerceRouter) Checkout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := router.checkoutSvc.ProcessRequest(checkoutReq)
-
+	w.Header().Add("Content-Type", "application/json")
 	jsonResp := ConvertCheckoutResponseToCheckoutJSONResponse(resp)
 	enc.Encode(jsonResp)
 }
