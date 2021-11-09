@@ -43,18 +43,24 @@ func NewCheckoutService(r Repository, d DiscountService, bf time.Time) CheckoutS
 	}
 }
 
-func (c CheckoutService) ProcessRequest(req CheckoutRequest) (*CheckoutResponse, error) {
-	response := CheckoutResponse{}
+func (c CheckoutService) ProcessRequest(req CheckoutRequest) *CheckoutResponse {
+	response := &CheckoutResponse{}
 
 	for _, p := range req.Products {
 		productDAO, err := c.repo.Find(p.Id)
 		if err != nil {
-			log.Println("Product with id =", p.Id, "not found")
-			continue
+			switch err {
+			case ErrProductNotFound:
+				log.Printf("Product with id=%d not found in repository", p.Id)
+				continue
+			default:
+				log.Printf("Something unexpected went wrong obtaining product=%d: %v", p.Id, err)
+				continue
+			}
 		}
 
 		if CheckedOutProductIsAGift(productDAO) {
-			log.Println("Product with id =", p.Id, "is a gift and therefore cannot be checked out")
+			log.Printf("Product with id=%d is a gift and therefore cannot be checked out", p.Id)
 			continue
 		}
 
@@ -62,12 +68,13 @@ func (c CheckoutService) ProcessRequest(req CheckoutRequest) (*CheckoutResponse,
 		response.AddProduct(productDAO, p.Quantity, discount)
 	}
 
-	if c.ItsBlackFriday() {
+	// Only add gift if there are products in checkout
+	if len(response.Products) > 0 && c.ItsBlackFriday() {
 		log.Println("Its black friday! Attempt to add gift product to checkout")
-		c.AddBlackFridayGift(&response)
+		c.AddBlackFridayGift(response)
 	}
 
-	return &response, nil
+	return response
 }
 
 func CheckedOutProductIsAGift(p ProductDAO) bool {
@@ -106,9 +113,16 @@ func (c CheckoutService) ItsBlackFriday() bool {
 func (c CheckoutService) AddBlackFridayGift(r *CheckoutResponse) {
 	gift, err := c.repo.FindGift()
 	if err != nil {
-		log.Printf("Could not add a gift product to checkout: %v", err)
-		return
+		switch err {
+		case ErrNoGiftFound:
+			log.Printf("No gift was found in repository")
+			return
+		default:
+			log.Printf("Something went wrong obtaining a gift: %v", err)
+			return
+		}
 	}
+
 	r.AddGiftProduct(gift, 1)
 	log.Printf("Gift product=%d added to checkout", gift.Id)
 }

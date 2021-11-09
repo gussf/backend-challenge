@@ -63,6 +63,18 @@ func TestCheckoutProcessRequest(t *testing.T) {
 			expectedTotalAmount:   300,
 			expectedTotalDiscount: 30,
 		},
+		{
+			name: "Checkout product that doesnt exist in repository",
+			testProducts: []ProductDAO{
+				{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: false},
+			},
+			testProductRequest: []ProductRequest{
+				{Id: 4, Quantity: 1},
+			},
+			expectedLength:        0,
+			expectedTotalAmount:   0,
+			expectedTotalDiscount: 0,
+		},
 	}
 
 	for _, tt := range tests {
@@ -73,7 +85,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 				Products: tt.testProductRequest,
 			}
 
-			response, _ := checkoutSvc.ProcessRequest(request)
+			response := checkoutSvc.ProcessRequest(request)
 			got := len(response.Products)
 			if tt.expectedLength != got {
 				t.Errorf("'%s' Incorrect ExpectedLength: want=%d, got=%d", tt.name, tt.expectedLength, got)

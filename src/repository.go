@@ -7,6 +7,11 @@ import (
 	"sort"
 )
 
+var (
+	ErrProductNotFound = errors.New("product not found in repository")
+	ErrNoGiftFound     = errors.New("no gift was found in repository")
+)
+
 type ProductDAO struct {
 	Id          int
 	Title       string
@@ -42,7 +47,7 @@ func (m InMemoryRepository) Find(id int) (ProductDAO, error) {
 	if ret < len(m.Products) && m.Products[ret].Id == id {
 		return m.Products[ret], nil
 	}
-	return ProductDAO{}, errors.New("product not found in repository")
+	return ProductDAO{}, ErrProductNotFound
 }
 
 func (m InMemoryRepository) FindGift() (ProductDAO, error) {
@@ -52,7 +57,7 @@ func (m InMemoryRepository) FindGift() (ProductDAO, error) {
 		}
 	}
 
-	return ProductDAO{}, errors.New("no gift product was found in repository")
+	return ProductDAO{}, ErrNoGiftFound
 }
 
 type Repository interface {

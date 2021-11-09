@@ -23,12 +23,12 @@ type ProductJSONResponse struct {
 }
 
 type ECommerceRouter struct {
-	cs CheckoutService
+	checkoutSvc CheckoutService
 }
 
-func NewECommerceRouter(cSvc CheckoutService) ECommerceRouter {
+func NewECommerceRouter(cs CheckoutService) ECommerceRouter {
 	return ECommerceRouter{
-		cs: cSvc,
+		checkoutSvc: cs,
 	}
 }
 
@@ -47,7 +47,7 @@ func (router ECommerceRouter) Checkout(w http.ResponseWriter, r *http.Request) {
 		log.Println("Failed to parse request: " + err.Error())
 	}
 
-	resp, err := router.cs.ProcessRequest(checkoutReq)
+	resp := router.checkoutSvc.ProcessRequest(checkoutReq)
 
 	jsonResp := ConvertCheckoutResponseToCheckoutJSONResponse(resp)
 	enc := json.NewEncoder(w)
@@ -69,7 +69,7 @@ func ParseCheckoutRequestFromBody(r *http.Request) (CheckoutRequest, error) {
 
 func ConvertCheckoutResponseToCheckoutJSONResponse(r *CheckoutResponse) CheckoutJSONResponse {
 
-	var resp CheckoutJSONResponse
+	resp := CheckoutJSONResponse{Products: make([]ProductJSONResponse, 0)}
 
 	for _, p := range r.Products {
 		resp.Products = append(resp.Products, ConvertProductResponseToProductJSONResponse(p))
