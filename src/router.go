@@ -36,6 +36,8 @@ func NewECommerceRouter(cs checkout.CheckoutService) ECommerceRouter {
 
 func (router ECommerceRouter) Checkout(w http.ResponseWriter, r *http.Request) {
 
+	enc := json.NewEncoder(w)
+
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Write([]byte("Only POST method is allowed"))
@@ -47,12 +49,18 @@ func (router ECommerceRouter) Checkout(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Failed to parse request: " + err.Error()))
 		log.Println("Failed to parse request: " + err.Error())
+		return
+	}
+
+	if checkoutReq.HasNoProducts() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Request must have at least one product"))
+		return
 	}
 
 	resp := router.checkoutSvc.ProcessRequest(checkoutReq)
 
 	jsonResp := ConvertCheckoutResponseToCheckoutJSONResponse(resp)
-	enc := json.NewEncoder(w)
 	enc.Encode(jsonResp)
 }
 

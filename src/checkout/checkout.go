@@ -57,3 +57,7 @@ func (r *CheckoutResponse) AddGiftProduct(pDAO repository.ProductDAO, quantity i
 	p.TotalAmount, p.UnitAmount, p.DiscountGiven = 0, 0, 0
 	r.Products = append(r.Products, p)
 }
+
+func (c CheckoutRequest) HasNoProducts() bool {
+	return len(c.Products) == 0
+}
