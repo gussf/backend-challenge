@@ -1,8 +1,10 @@
-package main
+package checkout
 
 import (
 	"testing"
 	"time"
+
+	"github.com/gussf/backend-challenge/src/repository"
 )
 
 type StubDiscountService struct{}
@@ -15,7 +17,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 
 	tests := []struct {
 		name                  string
-		testProducts          []ProductDAO
+		testProducts          []repository.ProductDAO
 		testProductRequest    []ProductRequest
 		expectedLength        int
 		expectedTotalAmount   int
@@ -23,7 +25,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 	}{
 		{
 			name: "Should not checkout gift products",
-			testProducts: []ProductDAO{
+			testProducts: []repository.ProductDAO{
 				{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: true},
 			},
 			testProductRequest: []ProductRequest{
@@ -35,7 +37,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 		},
 		{
 			name: "Checkout valid products",
-			testProducts: []ProductDAO{
+			testProducts: []repository.ProductDAO{
 				{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: false},
 				{Id: 2, Title: "b", Description: "b", Amount: 200, Is_gift: false},
 			},
@@ -49,7 +51,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 		},
 		{
 			name: "Checkout valid products with one gift product(gift shouldnt be checked out)",
-			testProducts: []ProductDAO{
+			testProducts: []repository.ProductDAO{
 				{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: false},
 				{Id: 2, Title: "b", Description: "b", Amount: 200, Is_gift: false},
 				{Id: 3, Title: "c", Description: "c", Amount: 50, Is_gift: true},
@@ -65,7 +67,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 		},
 		{
 			name: "Checkout product that doesnt exist in repository",
-			testProducts: []ProductDAO{
+			testProducts: []repository.ProductDAO{
 				{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: false},
 			},
 			testProductRequest: []ProductRequest{
@@ -79,7 +81,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			inmemoryRepo := InMemoryRepository{Products: tt.testProducts}
+			inmemoryRepo := repository.InMemoryRepository{Products: tt.testProducts}
 			checkoutSvc := NewCheckoutService(inmemoryRepo, StubDiscountService{}, time.Now().Add(24*time.Hour)) // Add 1 day to avoid Black Friday
 			request := CheckoutRequest{
 				Products: tt.testProductRequest,
@@ -104,27 +106,9 @@ func TestCheckoutProcessRequest(t *testing.T) {
 	}
 }
 
-func TestUpdateCheckoutTotals(t *testing.T) {
-
-	resp := &CheckoutResponse{}
-	product := ProductResponse{TotalAmount: 300, DiscountGiven: 50}
-
-	wantAmount := product.TotalAmount
-	wantTotalDiscount := product.DiscountGiven
-
-	resp.UpdateCheckoutTotals(product)
-	if wantAmount != resp.TotalAmount {
-		t.Errorf("Incorrect TotalAmount: want=%d got=%d", wantAmount, resp.TotalAmount)
-	}
-
-	if wantTotalDiscount != resp.TotalDiscount {
-		t.Errorf("Incorrect TotalDiscount: want=%d got=%d", wantTotalDiscount, resp.TotalDiscount)
-	}
-}
-
 func TestCheckedOutProductIsAGift(t *testing.T) {
 
-	product := ProductDAO{Is_gift: true}
+	product := repository.ProductDAO{Is_gift: true}
 
 	ret := CheckedOutProductIsAGift(product)
 	want := true
@@ -134,84 +118,8 @@ func TestCheckedOutProductIsAGift(t *testing.T) {
 	}
 }
 
-func TestAddProduct(t *testing.T) {
-
-	response := CheckoutResponse{}
-	pDAO := ProductDAO{Id: 1, Amount: 200}
-	quantity := 1
-	var discount float32 = 0.10
-
-	response.AddProduct(pDAO, quantity, float32(discount))
-	want := 1
-	got := len(response.Products)
-
-	if want != got {
-		t.Errorf("Incorrect Products length: want=%d, got=%d", want, got)
-	}
-
-	// AddProduct should also update checkout totals (amount and discount)
-
-	want = pDAO.Amount * quantity
-	got = response.TotalAmount
-	if want != got {
-		t.Errorf("Incorrect Response TotalAmount: want=%d, got=%d", want, got)
-	}
-
-	want = int(float32(pDAO.Amount*quantity) * discount)
-	got = response.TotalDiscount
-	if want != got {
-		t.Errorf("Incorrect Response TotalDiscount: want=%d, got=%d", want, got)
-	}
-}
-
-func TestConvertProductDAOToProductResponse(t *testing.T) {
-	p := ProductDAO{
-		Id: 1, Title: "a", Description: "a", Amount: 200, Is_gift: false,
-	}
-	quantity := 2
-	var discount float32 = 0.05
-
-	pResp := ConvertProductDAOToProductResponse(p, quantity, float32(discount))
-
-	want := p.Id
-	got := pResp.Id
-	if want != got {
-		t.Errorf("Incorrect Product ID: want=%d, got=%d", want, got)
-	}
-
-	want = p.Amount
-	got = pResp.UnitAmount
-	if want != got {
-		t.Errorf("Incorrect Product UnitAmount: want=%d, got=%d", want, got)
-	}
-
-	want = quantity
-	got = pResp.Quantity
-	if want != got {
-		t.Errorf("Incorrect Product Quantity: want=%d, got=%d", want, got)
-	}
-
-	want = p.Amount * quantity
-	got = pResp.TotalAmount
-	if want != got {
-		t.Errorf("Incorrect Product TotalAmount: want=%d, got=%d", want, got)
-	}
-
-	want = int(float32(p.Amount*quantity) * discount)
-	got = pResp.DiscountGiven
-	if want != got {
-		t.Errorf("Incorrect Product DiscountGiven: want=%d, got=%d", want, got)
-	}
-
-	wantB := p.Is_gift
-	gotB := pResp.IsGift
-	if wantB != gotB {
-		t.Errorf("Incorrect Product IsGift: want=%t, got=%t", wantB, gotB)
-	}
-}
-
 func TestItsBlackFriday(t *testing.T) {
-	inmemoryRepo := InMemoryRepository{}
+	inmemoryRepo := repository.InMemoryRepository{}
 
 	tests := []struct {
 		name            string
@@ -244,13 +152,13 @@ func TestAddBlackFridayGift(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		products   []ProductDAO
+		products   []repository.ProductDAO
 		wantLength int
 		wantCosts  int
 	}{
 		{
 			name: "Should add one gift to checkout with no cost",
-			products: []ProductDAO{
+			products: []repository.ProductDAO{
 				{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: true},
 			},
 			wantLength: 1,
@@ -258,7 +166,7 @@ func TestAddBlackFridayGift(t *testing.T) {
 		},
 		{
 			name: "Should not find a gift to add to checkout",
-			products: []ProductDAO{
+			products: []repository.ProductDAO{
 				{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: false},
 			},
 			wantLength: 0,
@@ -269,7 +177,7 @@ func TestAddBlackFridayGift(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			inmemoryRepo := InMemoryRepository{Products: tt.products}
+			inmemoryRepo := repository.InMemoryRepository{Products: tt.products}
 			checkoutSvc := NewCheckoutService(inmemoryRepo, StubDiscountService{}, time.Now())
 			checkoutResp := &CheckoutResponse{}
 
@@ -286,48 +194,4 @@ func TestAddBlackFridayGift(t *testing.T) {
 		})
 	}
 
-}
-
-func TestAddGiftProduct(t *testing.T) {
-
-	product := ProductDAO{Id: 1, Title: "a", Description: "a", Amount: 100, Is_gift: true}
-	quantity := 1
-	wantLength := 1
-	wantCosts := 0
-
-	checkoutResp := &CheckoutResponse{}
-	checkoutResp.AddGiftProduct(product, quantity)
-
-	got := len(checkoutResp.Products)
-	if wantLength != got {
-		t.Errorf("Incorrect Response Products Length: want=%d, got=%d", wantLength, got)
-	}
-
-	addedGift := checkoutResp.Products[0]
-
-	got = addedGift.TotalAmount
-	if wantCosts != got {
-		t.Errorf("Incorrect Gift Product TotalAmount: want=%d, got=%d", wantCosts, got)
-	}
-
-	got = addedGift.DiscountGiven
-	if wantCosts != got {
-		t.Errorf("Incorrect Gift Product DiscountGiven: want=%d, got=%d", wantCosts, got)
-	}
-
-	got = addedGift.UnitAmount
-	if wantCosts != got {
-		t.Errorf("Incorrect Gift Product UnitAmount: want=%d, got=%d", wantCosts, got)
-	}
-
-	got = addedGift.Quantity
-	if quantity != got {
-		t.Errorf("Incorrect Gift Product Quantity: want=%d, got=%d", quantity, got)
-	}
-
-	gotB := addedGift.IsGift
-	want := true
-	if want != gotB {
-		t.Errorf("Incorrect Gift Product IsGift: want=%t, got=%t", want, gotB)
-	}
 }

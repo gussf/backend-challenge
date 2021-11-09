@@ -6,6 +6,10 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/gussf/backend-challenge/src/checkout"
+	"github.com/gussf/backend-challenge/src/discount"
+	"github.com/gussf/backend-challenge/src/repository"
 )
 
 func main() {
@@ -19,13 +23,13 @@ func main() {
 
 	blackFridayDate := Parse_MMDD_DateFromString(blackFridayDateEnvvar)
 
-	imr, err := NewInMemoryRepository("data/products.json")
+	imr, err := repository.NewInMemoryRepository("data/products.json")
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	dSvc := NewDiscountService_gRPC(discountGRPCAddress, gRPC_Deadline)
-	cSvc := NewCheckoutService(imr, dSvc, blackFridayDate)
+	dSvc := discount.NewDiscountService_gRPC(discountGRPCAddress, gRPC_Deadline)
+	cSvc := checkout.NewCheckoutService(imr, dSvc, blackFridayDate)
 	r := NewECommerceRouter(cSvc)
 
 	http.HandleFunc("/checkout", r.Checkout)

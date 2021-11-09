@@ -1,4 +1,4 @@
-package main
+package repository
 
 import (
 	"encoding/json"
@@ -6,19 +6,6 @@ import (
 	"io/ioutil"
 	"sort"
 )
-
-var (
-	ErrProductNotFound = errors.New("product not found in repository")
-	ErrNoGiftFound     = errors.New("no gift was found in repository")
-)
-
-type ProductDAO struct {
-	Id          int
-	Title       string
-	Description string
-	Amount      int
-	Is_gift     bool
-}
 
 type InMemoryRepository struct {
 	Products []ProductDAO
@@ -58,9 +45,4 @@ func (m InMemoryRepository) FindGift() (ProductDAO, error) {
 	}
 
 	return ProductDAO{}, ErrNoGiftFound
-}
-
-type Repository interface {
-	Find(id int) (ProductDAO, error)
-	FindGift() (ProductDAO, error)
 }
