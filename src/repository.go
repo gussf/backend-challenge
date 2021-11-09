@@ -45,6 +45,17 @@ func (m InMemoryRepository) Find(id int) (ProductDAO, error) {
 	return ProductDAO{}, errors.New("product not found in repository")
 }
 
+func (m InMemoryRepository) FindGift() (ProductDAO, error) {
+	for _, p := range m.Products {
+		if p.Is_gift {
+			return p, nil
+		}
+	}
+
+	return ProductDAO{}, errors.New("no gift product was found in repository")
+}
+
 type Repository interface {
 	Find(id int) (ProductDAO, error)
+	FindGift() (ProductDAO, error)
 }
