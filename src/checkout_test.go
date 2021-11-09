@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 type StubDiscountService struct{}
@@ -68,7 +69,7 @@ func TestCheckoutProcessRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			inmemoryRepo := InMemoryRepository{Products: tt.testProducts}
-			checkoutSvc := NewCheckoutService(inmemoryRepo, StubDiscountService{})
+			checkoutSvc := NewCheckoutService(inmemoryRepo, StubDiscountService{}, time.Now())
 			request := CheckoutRequest{
 				Products: tt.testProductRequest,
 			}

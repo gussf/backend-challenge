@@ -1,6 +1,9 @@
 package main
 
-import "log"
+import (
+	"log"
+	"time"
+)
 
 type CheckoutResponse struct {
 	TotalAmount   int
@@ -27,14 +30,16 @@ type ProductRequest struct {
 }
 
 type CheckoutService struct {
-	repo        Repository
-	discountSvc DiscountService
+	repo            Repository
+	discountSvc     DiscountService
+	blackFridayDate time.Time
 }
 
-func NewCheckoutService(r Repository, d DiscountService) CheckoutService {
+func NewCheckoutService(r Repository, d DiscountService, bf time.Time) CheckoutService {
 	return CheckoutService{
-		repo:        r,
-		discountSvc: d,
+		repo:            r,
+		discountSvc:     d,
+		blackFridayDate: bf,
 	}
 }
 
@@ -57,6 +62,12 @@ func (c CheckoutService) ProcessRequest(req CheckoutRequest) (*CheckoutResponse,
 		productResp := ConvertProductDAOToProductResponse(productDAO, p.Quantity, discount)
 		response.AddProduct(productResp)
 	}
+
+	if c.ItsBlackFriday() {
+		log.Println("Its black friday! Attempt to add gift product to checkout")
+		c.AddGiftProductToCheckout(&response)
+	}
+
 	return &response, nil
 }
 
@@ -84,4 +95,29 @@ func (r *CheckoutResponse) AddProduct(p ProductResponse) {
 func (r *CheckoutResponse) UpdateCheckoutTotals(p ProductResponse) {
 	r.TotalAmount += p.TotalAmount
 	r.TotalDiscount += p.DiscountGiven
+}
+
+func (c CheckoutService) ItsBlackFriday() bool {
+	today := time.Now()
+	return c.blackFridayDate.Month() == today.Month() && c.blackFridayDate.Day() == today.Day()
+}
+
+func (c CheckoutService) AddGiftProductToCheckout(r *CheckoutResponse) {
+	gift, err := c.repo.FindGift()
+	if err != nil {
+		log.Printf("Could not add a gift product to checkout: %v", err)
+		return
+	}
+	productResp := ConvertProductDAOToProductResponse(gift, 1, 0)
+	r.AddGiftProduct(productResp)
+	log.Printf("Gift product=%d added to checkout", productResp.Id)
+	log.Println(r)
+}
+
+// Gifts shouldn't cost anything
+func (r *CheckoutResponse) AddGiftProduct(p ProductResponse) {
+	p.TotalAmount = 0
+	p.UnitAmount = 0
+	p.DiscountGiven = 0
+	r.Products = append(r.Products, p)
 }
