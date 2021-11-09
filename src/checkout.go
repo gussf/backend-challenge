@@ -59,13 +59,12 @@ func (c CheckoutService) ProcessRequest(req CheckoutRequest) (*CheckoutResponse,
 		}
 
 		discount := c.discountSvc.GetDiscountForProduct(int32(p.Id))
-		productResp := ConvertProductDAOToProductResponse(productDAO, p.Quantity, discount)
-		response.AddProduct(productResp)
+		response.AddProduct(productDAO, p.Quantity, discount)
 	}
 
 	if c.ItsBlackFriday() {
 		log.Println("Its black friday! Attempt to add gift product to checkout")
-		c.AddGiftProductToCheckout(&response)
+		c.AddBlackFridayGift(&response)
 	}
 
 	return &response, nil
@@ -73,6 +72,14 @@ func (c CheckoutService) ProcessRequest(req CheckoutRequest) (*CheckoutResponse,
 
 func CheckedOutProductIsAGift(p ProductDAO) bool {
 	return p.Is_gift
+}
+
+// AddProduct converts DAO and updates totals for safety, the caller might forget to call one or the other
+func (r *CheckoutResponse) AddProduct(pDAO ProductDAO, quantity int, discount float32) {
+
+	p := ConvertProductDAOToProductResponse(pDAO, quantity, discount)
+	r.Products = append(r.Products, p)
+	r.UpdateCheckoutTotals(p)
 }
 
 func ConvertProductDAOToProductResponse(p ProductDAO, quantity int, discount float32) ProductResponse {
@@ -86,12 +93,6 @@ func ConvertProductDAOToProductResponse(p ProductDAO, quantity int, discount flo
 	}
 }
 
-// AddProduct updates totals for safety, the caller might forget to call one or the other
-func (r *CheckoutResponse) AddProduct(p ProductResponse) {
-	r.Products = append(r.Products, p)
-	r.UpdateCheckoutTotals(p)
-}
-
 func (r *CheckoutResponse) UpdateCheckoutTotals(p ProductResponse) {
 	r.TotalAmount += p.TotalAmount
 	r.TotalDiscount += p.DiscountGiven
@@ -102,22 +103,20 @@ func (c CheckoutService) ItsBlackFriday() bool {
 	return c.blackFridayDate.Month() == today.Month() && c.blackFridayDate.Day() == today.Day()
 }
 
-func (c CheckoutService) AddGiftProductToCheckout(r *CheckoutResponse) {
+func (c CheckoutService) AddBlackFridayGift(r *CheckoutResponse) {
 	gift, err := c.repo.FindGift()
 	if err != nil {
 		log.Printf("Could not add a gift product to checkout: %v", err)
 		return
 	}
-	productResp := ConvertProductDAOToProductResponse(gift, 1, 0)
-	r.AddGiftProduct(productResp)
-	log.Printf("Gift product=%d added to checkout", productResp.Id)
-	log.Println(r)
+	r.AddGiftProduct(gift, 1)
+	log.Printf("Gift product=%d added to checkout", gift.Id)
 }
 
 // Gifts shouldn't cost anything
-func (r *CheckoutResponse) AddGiftProduct(p ProductResponse) {
-	p.TotalAmount = 0
-	p.UnitAmount = 0
-	p.DiscountGiven = 0
+func (r *CheckoutResponse) AddGiftProduct(pDAO ProductDAO, quantity int) {
+
+	p := ConvertProductDAOToProductResponse(pDAO, quantity, 0.00)
+	p.TotalAmount, p.UnitAmount, p.DiscountGiven = 0, 0, 0
 	r.Products = append(r.Products, p)
 }

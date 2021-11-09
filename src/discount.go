@@ -30,16 +30,18 @@ func NewDiscountService_gRPC(connAddress string, deadline time.Duration) Discoun
 func (svc DiscountService_gRPC) GetDiscountForProduct(id int32) float32 {
 
 	clientDeadline := time.Now().Add(svc.deadline)
-	ctx, _ := context.WithDeadline(context.Background(), clientDeadline)
+	ctx, cancel := context.WithDeadline(context.Background(), clientDeadline)
 
 	r, err := svc.client.GetDiscount(ctx, &discount.GetDiscountRequest{ProductID: id})
+	defer cancel()
 	if err != nil {
 		log.Printf("Failed to get discount for product=%d, returning discount=0.00: %v", id, err)
 		return 0.00
 	}
+	discount := r.GetPercentage()
 
-	log.Printf("Discount=%.2f received for product=%d", r.GetPercentage(), id)
-	return r.GetPercentage()
+	log.Printf("Discount=%.2f received for product=%d", discount, id)
+	return discount
 }
 
 type DiscountService interface {

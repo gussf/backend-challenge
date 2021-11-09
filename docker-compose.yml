@@ -7,5 +7,6 @@ services:
       ECOMMERCE_LISTEN_ADDRESS: ${ECOMMERCE_LISTEN_ADDRESS}
       DISCOUNT_GRPC_ADDRESS: ${DISCOUNT_GRPC_ADDRESS}
       GRPC_DEADLINE_MS: ${GRPC_DEADLINE_MS}
+      BLACK_FRIDAY_DATE_MMDD: ${BLACK_FRIDAY_DATE_MMDD}
   discount:
     image: hashorg/hash-mock-discount-service
